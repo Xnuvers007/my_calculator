@@ -3,19 +3,14 @@ from kivy.lang import Builder
 from kivy.core.window import Window
 from kivymd.app import MDApp
 from kivymd.toast import toast
-from kivymd.uix.gridlayout import MDGridLayout
-from kivymd.uix.button import MDFillRoundFlatButton
-from kivymd.uix.textfield import MDTextField
-from kivymd.uix.boxlayout import MDBoxLayout
 import sympy as sp
 
-# Konfigurasi Window (Opsional untuk testing di PC)
-Window.size = (350, 600)
+# PENTING: Window.size dihapus agar aplikasi Fullscreen dan responsif di Android
 
 KV = '''
 MDBoxLayout:
     orientation: "vertical"
-    md_bg_color: 0.1, 0.1, 0.1, 1  # Background gelap profesional
+    md_bg_color: 0.1, 0.1, 0.1, 1
 
     MDTopAppBar:
         title: "Scientific Calc"
@@ -27,13 +22,13 @@ MDBoxLayout:
     MDBoxLayout:
         orientation: "vertical"
         padding: "20dp"
-        spacing: "10dp"
-        size_hint_y: 0.3
+        spacing: "15dp"
+        size_hint_y: 0.35 # Sedikit diperbesar agar input tidak terpotong
 
         MDTextField:
             id: input_field
-            hint_text: "Masukkan Ekspresi (contoh: sin(x) + x**2)"
-            helper_text: "Gunakan 'x' untuk variabel simbolik"
+            hint_text: "Ekspresi (contoh: sin(x) + x**2)"
+            helper_text: "Gunakan 'x' untuk variabel"
             helper_text_mode: "on_focus"
             multiline: False
             font_size: "24sp"
@@ -45,15 +40,17 @@ MDBoxLayout:
             id: result_label
             text: "Hasil: "
             theme_text_color: "Custom"
-            text_color: 0, 1, 0, 1  # Hijau terminal
+            text_color: 0, 1, 0, 1
             font_style: "H5"
             halign: "right"
+            size_hint_y: None
+            height: self.texture_size[1]
 
     MDGridLayout:
         cols: 4
-        spacing: "10dp"
+        spacing: "8dp" # Jarak antar tombol disesuaikan
         padding: "10dp"
-        size_hint_y: 0.7
+        size_hint_y: 0.65
         id: button_grid
 '''
 
@@ -63,7 +60,6 @@ class ScientificCalc(MDApp):
         self.theme_cls.primary_palette = "BlueGray"
         self.screen = Builder.load_string(KV)
         
-        # Mapping tombol
         buttons = [
             'C', 'DEL', '(', ')',
             'sin', 'cos', 'tan', 'sqrt',
@@ -75,23 +71,22 @@ class ScientificCalc(MDApp):
         ]
         
         grid = self.screen.ids.button_grid
+        from kivymd.uix.button import MDFillRoundFlatButton
         for btn in buttons:
             button = MDFillRoundFlatButton(
                 text=btn,
-                font_size="18sp",
-                size_hint=(1, 1)
+                font_size="20sp", # Ukuran font tombol diperbesar sedikit
+                size_hint=(1, 1)  # Agar tombol mengisi ruang kosong secara merata
             )
             button.bind(on_release=self.on_button_press)
             
-            # Styling khusus untuk tombol operasi
             if btn in ['=', 'C', 'DEL']:
-                button.md_bg_color = (1, 0.3, 0.3, 1) # Merah pudar
+                button.md_bg_color = (0.8, 0.2, 0.2, 1) 
             elif btn in ['solve', 'diff', 'int']:
-                button.md_bg_color = (0.3, 0.6, 1, 1) # Biru
+                button.md_bg_color = (0.2, 0.5, 0.8, 1) 
                 
             grid.add_widget(button)
 
-        # Variabel untuk double back exit
         self.last_back_time = 0
         Window.bind(on_keyboard=self.events)
         
@@ -115,7 +110,6 @@ class ScientificCalc(MDApp):
         elif button_text == 'solve':
             self.calculate_symbolic(current_text, 'solve')
         else:
-            # Tambahkan spasi untuk fungsi agar rapi
             if button_text in ['sin', 'cos', 'tan', 'sqrt']:
                 new_text = current_text + button_text + "("
             else:
@@ -124,10 +118,8 @@ class ScientificCalc(MDApp):
 
     def calculate_result(self, expression):
         try:
-            # Gunakan sympify untuk evaluasi aman (support akar, pangkat, dll)
-            # Hindari eval() Python murni demi keamanan
             expr = sp.sympify(expression)
-            result = expr.evalf() # Evaluasi numerik
+            result = expr.evalf()
             self.screen.ids.result_label.text = f"= {result:.4f}"
         except Exception as e:
             self.screen.ids.result_label.text = "Error"
@@ -145,7 +137,6 @@ class ScientificCalc(MDApp):
                 res = sp.integrate(expr, x)
                 display_text = f"∫: {res} + C"
             elif operation == 'solve':
-                # Asumsi persamaan diset sama dengan 0
                 res = sp.solve(expr, x)
                 display_text = f"x = {res}"
             
@@ -153,17 +144,16 @@ class ScientificCalc(MDApp):
             
         except Exception as e:
             self.screen.ids.result_label.text = "Error Logic"
-            toast(f"Gunakan variabel 'x'. Error: {str(e)}")
+            toast("Gunakan variabel 'x'")
 
     def events(self, instance, keyboard, keycode, text, modifiers):
-        # Tombol Back di Android biasanya kode 27 (Escape di PC)
         if keyboard in (1001, 27): 
             if time.time() - self.last_back_time > 2:
                 self.last_back_time = time.time()
                 toast("Tekan sekali lagi untuk keluar")
-                return True # Jangan tutup dulu
+                return True
             else:
-                return False # Biarkan sistem menutup aplikasi
+                return False
         return False
 
 if __name__ == '__main__':
