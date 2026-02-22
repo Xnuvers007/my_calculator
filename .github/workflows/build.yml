@@ -6,32 +6,37 @@ on:
   pull_request:
     branches: [ "main" ]
 
-# Wajib ditambahkan: Memberikan izin pada GitHub Actions untuk membuat Release
 permissions:
-  contents: write 
+  contents: write
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Menggunakan ubuntu-22.04 karena paling stabil untuk Android NDK saat ini
+    runs-on: ubuntu-22.04 
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4 # Diperbarui ke v4 agar lebih stabil
+        uses: actions/checkout@v4
 
-      - name: Free Disk Space
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # Versi Python yang optimal untuk Buildozer
+
+      - name: Install System Dependencies
+        # Menginstal pustaka C, Java JDK, dan tool yang dibutuhkan Android SDK/NDK
         run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo apt update
+          sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+
+      - name: Install Buildozer
+        run: |
+          pip install --upgrade pip
+          pip install buildozer cython virtualenv
 
       - name: Build with Buildozer
-        # Sintaks sudah diperbaiki menggunakan @
-        uses: ArtemSBulgakov/buildozer-action@v1 
-        id: buildozer
-        with:
-          command: buildozer android debug
-          buildozer_version: master
+        # Menjalankan buildozer secara langsung tanpa Docker
+        run: buildozer android debug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
@@ -40,12 +45,10 @@ jobs:
           path: bin/*.apk
 
       - name: Create GitHub Release and Upload APK
-        # Menggunakan action populer untuk menangani release
         uses: softprops/action-gh-release@v2
-        # Hanya membuat release jika ini adalah 'push' ke branch main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.0.${{ github.run_number }} # Membuat versi dinamis otomatis (contoh: v1.0.12)
+          tag_name: v1.0.${{ github.run_number }}
           name: SciCalc Release v1.0.${{ github.run_number }}
           files: bin/*.apk
           draft: false
