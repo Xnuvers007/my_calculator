@@ -7,13 +7,13 @@ package.domain = org.indrascicalc
 
 # (2) Sumber File
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas
+source.include_exts = py,png,jpg,kv,atlas,json
 
 # (3) Versi
 version = 1.0.0
 
 # (4) Requirements (PENTING: pillow sering dibutuhkan oleh KivyMD)
-requirements = python3,kivy==2.2.1,kivymd==1.1.1,mpmath,sympy,sdl2_ttf==2.20.0,pillow
+requirements = python3,kivy==2.2.1,kivymd==1.1.1,sdl2_ttf==2.20.0,pillow
 
 # (5) Tampilan
 orientation = portrait
