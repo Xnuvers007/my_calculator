@@ -1,0 +1,52 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+# Wajib ditambahkan: Memberikan izin pada GitHub Actions untuk membuat Release
+permissions:
+  contents: write 
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4 # Diperbarui ke v4 agar lebih stabil
+
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
+      - name: Build with Buildozer
+        # Sintaks sudah diperbaiki menggunakan @
+        uses: ArtemSBulgakov/buildozer-action@v1 
+        id: buildozer
+        with:
+          command: buildozer android debug
+          buildozer_version: master
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: bin/*.apk
+
+      - name: Create GitHub Release and Upload APK
+        # Menggunakan action populer untuk menangani release
+        uses: softprops/action-gh-release@v2
+        # Hanya membuat release jika ini adalah 'push' ke branch main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.${{ github.run_number }} # Membuat versi dinamis otomatis (contoh: v1.0.12)
+          name: SciCalc Release v1.0.${{ github.run_number }}
+          files: bin/*.apk
+          draft: false
+          prerelease: false
